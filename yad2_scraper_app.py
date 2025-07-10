@@ -15,29 +15,27 @@ url = st.text_input("🔗 קישור לדף:", "")
 
 if url:
     with st.spinner("🚗 טוען מודעות מהאתר..."):
-        # הגדרות לדפדפן כרום ללא GUI
+        # הגדרות לדפדפן כרום (פתוח רגיל כדי למנוע קריסה)
         options = Options()
-        options.add_argument("--headless")
+        # options.add_argument("--headless")  # ⛔ שורה זו מושבתת כדי לא לקרוס
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
 
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
         driver.get(url)
 
-        time.sleep(5)
+        time.sleep(5)  # המתנה שהדף ייטען
 
         html = driver.page_source
         driver.quit()
 
-        # ✅ שמירת הקובץ לצורך דיבאג
+        # ✅ שמירת HTML לבדיקה
         with open("debug_page.html", "w", encoding="utf-8") as f:
             f.write(html)
 
         # ניתוח HTML עם BeautifulSoup
         soup = BeautifulSoup(html, "html.parser")
-
-        # סלקטור ראשוני - נצטרך לעדכן לפי הקובץ
-        listings = soup.find_all("div", class_="feeditem table")
+        listings = soup.find_all("div", class_="feeditem table")  # סלקטור זמני
 
         data = []
         for item in listings:
@@ -57,4 +55,4 @@ if url:
             st.success(f"נמצאו {len(df)} מודעות")
             st.dataframe(df)
         else:
-            st.error("❌ לא נמצאו מודעות — ייתכן שצריך לעדכן את ה־class או להמתין יותר זמן לטעינה.")
+            st.error("❌ לא נמצאו מודעות — ייתכן שצריך לעדכן class לפי HTML בפועל.")
