@@ -1,8 +1,6 @@
 import streamlit as st
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 import pandas as pd
 import time
@@ -15,27 +13,30 @@ url = st.text_input("🔗 קישור לדף:", "")
 
 if url:
     with st.spinner("🚗 טוען מודעות מהאתר..."):
-        # הגדרות לדפדפן כרום (פתוח רגיל כדי למנוע קריסה)
+        # הגדרות לדפדפן
         options = Options()
-        # options.add_argument("--headless")  # ⛔ שורה זו מושבתת כדי לא לקרוס
+        # options.add_argument("--headless")  # הסרנו כי גרם לקריסה
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--remote-debugging-port=9222")
 
-        driver_path = r"C:\Users\malachi\.wdm\drivers\chromedriver\win64\138.0.7204.94\chromedriver-win32\chromedriver.exe" driver = webdriver.Chrome(executable_path=driver_path, options=options)
+        # הנתיב הידני ל־chromedriver שהתקנת
+        driver_path = r"C:\Users\malachi\.wdm\drivers\chromedriver\win64\138.0.7204.94\chromedriver-win32\chromedriver.exe"
+        driver = webdriver.Chrome(executable_path=driver_path, options=options)
+
         driver.get(url)
-
         time.sleep(5)  # המתנה שהדף ייטען
 
         html = driver.page_source
         driver.quit()
 
-        # ✅ שמירת HTML לבדיקה
+        # שמירה לבדיקה
         with open("debug_page.html", "w", encoding="utf-8") as f:
             f.write(html)
 
-        # ניתוח HTML עם BeautifulSoup
         soup = BeautifulSoup(html, "html.parser")
-        listings = soup.find_all("div", class_="feeditem table")  # סלקטור זמני
+        listings = soup.find_all("div", class_="feeditem table")  # ייתכן וצריך לעדכן class
 
         data = []
         for item in listings:
@@ -55,4 +56,4 @@ if url:
             st.success(f"נמצאו {len(df)} מודעות")
             st.dataframe(df)
         else:
-            st.error("❌ לא נמצאו מודעות — ייתכן שצריך לעדכן class לפי HTML בפועל.")
+            st.error("❌ לא נמצאו מודעות — ייתכן שצריך לעדכן את הסלקטור לפי HTML.")
