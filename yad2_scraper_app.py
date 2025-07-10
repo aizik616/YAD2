@@ -13,15 +13,13 @@ url = st.text_input("🔗 קישור לדף:", "")
 
 if url:
     with st.spinner("🚗 טוען מודעות מהאתר..."):
-        # הגדרות לדפדפן
+        # הגדרות לדפדפן כרום
         options = Options()
-        # options.add_argument("--headless")  # הסרנו כי גרם לקריסה
+        # options.add_argument("--headless")  # אפשר לבטל בעת הצורך
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--remote-debugging-port=9222")
 
-        # הנתיב הידני ל־chromedriver שהתקנת
+        # ✅ הנתיב הידני ל־chromedriver שהתקנת
         driver_path = r"C:\Users\malachi\.wdm\drivers\chromedriver\win64\138.0.7204.94\chromedriver-win32\chromedriver.exe"
         driver = webdriver.Chrome(executable_path=driver_path, options=options)
 
@@ -31,12 +29,13 @@ if url:
         html = driver.page_source
         driver.quit()
 
-        # שמירה לבדיקה
+        # ✅ שמירת HTML לבדיקה
         with open("debug_page.html", "w", encoding="utf-8") as f:
             f.write(html)
 
+        # ניתוח HTML עם BeautifulSoup
         soup = BeautifulSoup(html, "html.parser")
-        listings = soup.find_all("div", class_="feeditem table")  # ייתכן וצריך לעדכן class
+        listings = soup.find_all("div", class_="feeditem table")  # ייתכן שצריך לעדכן class
 
         data = []
         for item in listings:
@@ -56,4 +55,4 @@ if url:
             st.success(f"נמצאו {len(df)} מודעות")
             st.dataframe(df)
         else:
-            st.error("❌ לא נמצאו מודעות — ייתכן שצריך לעדכן את הסלקטור לפי HTML.")
+            st.error("❌ לא נמצאו מודעות — ייתכן שצריך לעדכן סלקטור לפי HTML בפועל.")
