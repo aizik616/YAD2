@@ -1,74 +1,57 @@
-import time
-import numpy as np
-import pandas as pd
 import streamlit as st
-import matplotlib.pyplot as plt
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
+from bs4 import BeautifulSoup
+import pandas as pd
+import time
 
-def scrape_yad2(url, max_pages=3):
-    options = Options()
-    options.add_argument("--headless")
-    driver = webdriver.Chrome(options=options)
-    driver.get(url)
+st.set_page_config(page_title="ירידת ערך ביד2", layout="wide")
+st.title("📉 ניתוח ירידת ערך מרכבים ביד2")
+st.caption("הדבק קישור לעמוד תוצאות ביד2 (למשל: מאזדה 3, יונדאי איוניק)")
 
-    cars = []
-
-    for _ in range(max_pages):
-        time.sleep(3)
-        items = driver.find_elements("css selector", ".feeditem")
-
-        for item in items:
-            try:
-                title = item.find_element("css selector", ".title").text
-                price = item.find_element("css selector", ".price").text.replace(",", "").replace("₪", "").strip()
-                subtitle = item.find_element("css selector", ".subtitle").text
-                year = [int(s) for s in subtitle.split() if s.isdigit()]
-                year = year[0] if year else None
-                if year and price.isdigit():
-                    cars.append({
-                        "title": title,
-                        "year": year,
-                        "price": int(price)
-                    })
-            except:
-                continue
-
-        # נסה לעבור לעמוד הבא
-        try:
-            next_button = driver.find_element("css selector", '[aria-label="לעמוד הבא"]')
-            next_button.click()
-        except:
-            break
-
-    driver.quit()
-    return pd.DataFrame(cars)
-
-def plot_prices(df):
-    fig, ax = plt.subplots()
-    ax.scatter(df["year"], df["price"], alpha=0.6, label="מודעות")
-    
-    # קו מגמה
-    z = np.polyfit(df["year"], df["price"], 1)
-    p = np.poly1d(z)
-    df_sorted = df.sort_values("year")
-    ax.plot(df_sorted["year"], p(df_sorted["year"]), "r--", label="קו מגמה")
-
-    ax.set_xlabel("שנת ייצור")
-    ax.set_ylabel("מחיר (₪)")
-    ax.set_title("ירידת ערך לפי מודעות Yad2")
-    ax.legend()
-    st.pyplot(fig)
-
-# Streamlit UI
-st.title("ניתוח ירידת ערך מרכבים ביד2")
-url = st.text_input("הדבק קישור לדף חיפוש ביד2 (למשל: מאזדה 3)", "")
+url = st.text_input("🔗 קישור לחיפוש:", "")
 
 if url:
-    with st.spinner("שואב נתונים..."):
-        df = scrape_yad2(url)
-    st.success(f"נמצאו {len(df)} מודעות")
-    st.dataframe(df)
+    with st.spinner("🚗 טוען מודעות מדף יד2..."):
+        # הגדרות לדפדפן כרום ללא GUI
+        options = Options()
+        options.add_argument("--headless")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--no-sandbox")
 
-    if not df.empty:
-        plot_prices(df)
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        driver.get(url)
+
+        time.sleep(5)  # אפשר להחליף ל־WebDriverWait בהמשך
+
+        html = driver.page_source
+        driver.quit()
+
+        # שמירת ה-HTML לבדיקה
+        with open("debug_page.html", "w", encoding="utf-8") as f:
+            f.write(html)
+
+        soup = BeautifulSoup(html, "html.parser")
+        listings = soup.find_all("div", class_="feeditem table")  # class שצריך לוודא שהוא עדכני
+
+        data = []
+        for item in listings:
+            title = item.find("h3")
+            price = item.find("div", class_="price")
+            year_km = item.find("ul", class_="data")
+
+            if title and price and year_km:
+                data.append({
+                    "רכב": title.get_text(strip=True),
+                    "מחיר": price.get_text(strip=True).replace("₪", "").replace(",", ""),
+                    "פרטים": year_km.get_text(" | ", strip=True)
+                })
+
+        if data:
+            df = pd.DataFrame(data)
+            st.success(f"נמצאו {len(df)} מודעות")
+            st.dataframe(df)
+        else:
+            st.error("לא נמצאו מודעות. ייתכן שה־class השתנה או שהעמוד נטען חלקית.")
