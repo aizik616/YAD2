@@ -9,12 +9,12 @@ import time
 
 st.set_page_config(page_title="ירידת ערך ביד2", layout="wide")
 st.title("📉 ניתוח ירידת ערך מרכבים ביד2")
-st.caption("הדבק קישור לעמוד תוצאות ביד2 (למשל: מאזדה 3, יונדאי איוניק)")
+st.caption("הדבק קישור לעמוד תוצאות ביד2 (למשל: קיה נירו, מאזדה 3)")
 
-url = st.text_input("🔗 קישור לחיפוש:", "")
+url = st.text_input("🔗 קישור לדף:", "")
 
 if url:
-    with st.spinner("🚗 טוען מודעות מדף יד2..."):
+    with st.spinner("🚗 טוען מודעות מהאתר..."):
         # הגדרות לדפדפן כרום ללא GUI
         options = Options()
         options.add_argument("--headless")
@@ -24,17 +24,20 @@ if url:
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
         driver.get(url)
 
-        time.sleep(5)  # אפשר להחליף ל־WebDriverWait בהמשך
+        time.sleep(5)
 
         html = driver.page_source
         driver.quit()
 
-        # שמירת ה-HTML לבדיקה
+        # ✅ שמירת הקובץ לצורך דיבאג
         with open("debug_page.html", "w", encoding="utf-8") as f:
             f.write(html)
 
+        # ניתוח HTML עם BeautifulSoup
         soup = BeautifulSoup(html, "html.parser")
-        listings = soup.find_all("div", class_="feeditem table")  # class שצריך לוודא שהוא עדכני
+
+        # סלקטור ראשוני - נצטרך לעדכן לפי הקובץ
+        listings = soup.find_all("div", class_="feeditem table")
 
         data = []
         for item in listings:
@@ -54,4 +57,4 @@ if url:
             st.success(f"נמצאו {len(df)} מודעות")
             st.dataframe(df)
         else:
-            st.error("לא נמצאו מודעות. ייתכן שה־class השתנה או שהעמוד נטען חלקית.")
+            st.error("❌ לא נמצאו מודעות — ייתכן שצריך לעדכן את ה־class או להמתין יותר זמן לטעינה.")
