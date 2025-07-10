@@ -21,7 +21,7 @@ if url:
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
 
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        driver_path = r"C:\Users\malachi\.wdm\drivers\chromedriver\win64\138.0.7204.94\chromedriver-win32\chromedriver.exe" driver = webdriver.Chrome(executable_path=driver_path, options=options)
         driver.get(url)
 
         time.sleep(5)  # המתנה שהדף ייטען
